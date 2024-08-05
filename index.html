@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Builder</title>
+</head>
+<body>
+    <h2>SQL Builder</h2>
+    <textarea id="sqlInput" rows="4" cols="50" placeholder="Nhập đoạn ALTER TABLE..."></textarea><br><br>
+    <button onclick="buildSQL()">Build SQL</button>
+    <h3>Generated SQL:</h3>
+    <pre id="sqlOutput"></pre>
+
+    <script>
+        function buildSQL() {
+            const input = document.getElementById('sqlInput').value.trim();
+            const output = document.getElementById('sqlOutput');
+
+            if (input.startsWith('ALTER TABLE')) {
+                const match = input.match(/ALTER TABLE (\w+) (ADD COLUMN|DROP COLUMN) (\w+)/);
+                if (match) {
+                    const tableName = match[1];
+                    const operation = match[2];
+                    const columnName = match[3];
+                    let resultSQL = '';
+
+                    if (operation === 'ADD COLUMN') {
+                        resultSQL = `
+-- Kiểm tra sự tồn tại của cột ${columnName}
+IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = '${tableName}'
+      AND column_name = '${columnName}'
+)
+THEN
+    -- Thêm cột ${columnName} nếu chưa tồn tại
+    ${input};
+END IF;
+                        `;
+                    } else if (operation === 'DROP COLUMN') {
+                        resultSQL = `
+-- Kiểm tra sự tồn tại của cột ${columnName}
+IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = '${tableName}'
+      AND column_name = '${columnName}'
+)
+THEN
+    -- Xóa cột ${columnName} nếu tồn tại
+    ${input};
+END IF;
+                        `;
+                    }
+
+                    output.textContent = resultSQL.trim();
+                } else {
+                    output.textContent = 'Định dạng SQL không hợp lệ.';
+                }
+            } else {
+                output.textContent = 'Vui lòng nhập câu lệnh ALTER TABLE.';
+            }
+        }
+    </script>
+</body>
+</html>
