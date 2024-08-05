@@ -27,31 +27,45 @@
 
                     if (operation === 'ADD COLUMN') {
                         resultSQL = `
--- Kiểm tra sự tồn tại của cột ${columnName}
-IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = '${tableName}'
-      AND column_name = '${columnName}'
-)
-THEN
-    -- Thêm cột ${columnName} nếu chưa tồn tại
-    ${input};
-END IF;
+DELIMITER //
+
+CREATE PROCEDURE AddColumnIfNotExists()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = '${tableName}'
+        AND column_name = '${columnName}'
+    ) THEN
+        ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(50) AFTER email;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL AddColumnIfNotExists();
+DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
                         `;
                     } else if (operation === 'DROP COLUMN') {
                         resultSQL = `
--- Kiểm tra sự tồn tại của cột ${columnName}
-IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = '${tableName}'
-      AND column_name = '${columnName}'
-)
-THEN
-    -- Xóa cột ${columnName} nếu tồn tại
-    ${input};
-END IF;
+DELIMITER //
+
+CREATE PROCEDURE DropColumnIfExists()
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = '${tableName}'
+        AND column_name = '${columnName}'
+    ) THEN
+        ALTER TABLE ${tableName} DROP COLUMN ${columnName};
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL DropColumnIfExists();
+DROP PROCEDURE IF EXISTS DropColumnIfExists;
                         `;
                     }
 
